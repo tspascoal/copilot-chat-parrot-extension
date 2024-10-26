@@ -125,7 +125,7 @@ suite('getUserPrompt Test Suite', () => {
 async function openTextDocument(content: string) {
     // Open a new text document
     const document = await vscode.workspace.openTextDocument({ content: 'selected text' });
-    const editor = await vscode.window.showTextDocument(document);
+    await vscode.window.showTextDocument(document);
 }
 
 async function setTextSelection(text: string) {
