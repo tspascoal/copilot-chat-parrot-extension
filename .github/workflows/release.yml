@@ -38,7 +38,7 @@ jobs:
           subject-path: '*.vsix'
           show-summary: true
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
+      - name: Release Upload Assets
+        uses: jaywcjlove/github-action-upload-assets@v1.1.1
         with:
-          files: "*.vsix"
+          asset-path: '["./*.vsix"]'
