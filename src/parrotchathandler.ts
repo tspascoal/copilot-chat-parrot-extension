@@ -1,4 +1,3 @@
-import { hasUncaughtExceptionCaptureCallback } from 'process';
 import * as vscode from 'vscode';
 
 /**

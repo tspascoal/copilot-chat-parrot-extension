@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getUserPrompt } from '../parrotchathandler';
-import * as parrotHandler from '../parrotchathandler';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
