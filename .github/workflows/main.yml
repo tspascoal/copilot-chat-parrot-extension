@@ -37,7 +37,7 @@ jobs:
         run: npm run lint
 
       - name: Upload eslint results code scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always() && github.actor != 'dependabot[bot]'
         with:
           category: eslint
