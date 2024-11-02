@@ -146,7 +146,7 @@ function getCurrentSelectionText(): string | null {
  * @returns {vscode.Location | null} The location of the current selection in the active text editor,
  * or null if there is no active text editor.
  */
-function getCurrentSelectionLocation(): vscode.Location | null {
+export function getCurrentSelectionLocation(): vscode.Location | vscode.Uri | null {
     const editor = vscode.window.activeTextEditor;
 
     if (editor) {
@@ -187,7 +187,7 @@ export function getModelFamily(request: any): string {
  * - If the command is 'likeyoda', it adds a reference to Yoda's Wikipedia page.
  * - If the command is 'likeapirate', it adds a reference to the International Talk Like a Pirate Day Wikipedia page.
  */
-function addReferencesToResponse(request: vscode.ChatRequest, response: vscode.ChatResponseStream) {
+export function addReferencesToResponse(request: vscode.ChatRequest, response: vscode.ChatResponseStream) {
     const command = request.command;
 
     // Nonsense reference just for demo purposes. It's not really a reference to the user's input
@@ -202,14 +202,16 @@ function addReferencesToResponse(request: vscode.ChatRequest, response: vscode.C
         response.reference(vscode.Uri.parse('https://en.wikipedia.org/wiki/International_Talk_Like_a_Pirate_Day'));
     }
 
-    // Add to the references the ones we use in the prompt.
-    for (const ref of request.references) {
-        const reference: any = ref; // Cast to any, to get the name property, it's not in the type
-        if (reference.id === 'copilot.selection') {
+    if (request.references) {
+        // Add to the references the ones we use in the prompt.
+        for (const ref of request.references) {
+            const reference: any = ref; // Cast to any, to get the name property, it's not in the type
+            if (reference.id === 'copilot.selection') {
 
-            const location = getCurrentSelectionLocation();
-            if (location) {
-                response.reference(location);
+                const location = getCurrentSelectionLocation();
+                if (location) {
+                    response.reference(location);
+                }
             }
         }
     }
@@ -282,13 +284,13 @@ async function handleLikeCommands(command: string, userPrompt: string, request: 
         }
         console.timeEnd('call model');
     } catch (error) {
-        handleError(error, response);    
+        handleError(error, response);
     }
 }
 
 function handleError(error: any, stream: vscode.ChatResponseStream): void {
     console.log('Error processing chat request:', error);
-    
+
     if (error instanceof vscode.LanguageModelError) {
         console.log(error.message, error.code, error.cause);
         if (error.cause instanceof Error && error.cause.message.includes('off_topic')) {

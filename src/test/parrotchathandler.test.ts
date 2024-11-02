@@ -1,6 +1,8 @@
 import * as assert from 'assert';
-import { getModelFamily, getUserPrompt } from '../parrotchathandler';
+import { addReferencesToResponse, getModelFamily, getUserPrompt } from '../parrotchathandler';
+import * as parrotHandler from '../parrotchathandler';
 import * as vscode from 'vscode';
+import * as sinon from 'sinon';
 
 suite('getModelFamily Test Suite', () => {
     test('Returns user selected model family if present', () => {
@@ -100,10 +102,10 @@ suite('getUserPrompt Test Suite', () => {
         } as any;
 
         await setTextSelection('selected text');
-       
+
         const result = getUserPrompt(request);
         assert.strictEqual(result, 'First: selected text, Second: selected text');
-    });    
+    });
 
     test('Returns prompt unchanged if no copilot.selection references are present', () => {
         const request: vscode.ChatRequest = {
@@ -115,6 +117,88 @@ suite('getUserPrompt Test Suite', () => {
         assert.strictEqual(result, 'No references here');
     });
 });
+
+suite('addReferencesToResponse Test Suite', () => {
+    let responseStream: any;
+    let sandbox: sinon.SinonSandbox;
+
+    const blogUrlReference = 'https://pascoal.net/2024/10/22/gh-copilot-extensions';
+
+    setup(() => {
+        sandbox = sinon.createSandbox();
+        responseStream = {
+            reference: sandbox.stub()
+        };
+    });
+
+    teardown(() => {
+        sandbox.restore();
+    });
+
+    test('adds default reference', () => {
+        const request = { command: 'normal' } as vscode.ChatRequest;
+
+        addReferencesToResponse(request, responseStream);
+
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
+    });
+
+    test('adds Yoda reference when using likeyoda command', () => {
+        const request = { command: 'likeyoda' } as vscode.ChatRequest;
+
+        addReferencesToResponse(request, responseStream);
+
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
+        sinon.assert.calledWith(responseStream.reference,
+            vscode.Uri.parse('https://en.wikipedia.org/wiki/Yoda'));
+    });
+
+    test('adds pirate reference when using likeapirate command', () => {
+        const request = { command: 'likeapirate' } as vscode.ChatRequest;
+
+        addReferencesToResponse(request, responseStream);
+
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
+        sinon.assert.calledWith(responseStream.reference,
+            vscode.Uri.parse('https://en.wikipedia.org/wiki/International_Talk_Like_a_Pirate_Day'));
+    });
+
+    test('adds selection reference when copilot.selection is present', async () => {
+        const request = {
+            command: 'normal',
+            prompt: '',
+            references: [{ id: 'copilot.selection', name: 'selection' }]
+        } as unknown as vscode.ChatRequest;
+
+        await setTextSelection('text selection');
+
+        addReferencesToResponse(request, responseStream);
+
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));        
+        sinon.assert.calledWith(responseStream.reference, sinon.match({
+            uri: sinon.match({ scheme: 'untitled' }),
+            range: sinon.match({
+                start: sinon.match({
+                    line: 0,
+                    character: 0
+                }),
+                end: sinon.match({
+                    line: 0,
+                    character: 13
+                }),
+                active: sinon.match({
+                    line: 0,
+                    character: sinon.match.number
+                }),
+                anchor: sinon.match({
+                    line: 0,
+                    character: 0
+                })
+            })
+        }));
+    });
+});
+
 
 /**
  * Opens a new text document with the given content and displays it in the editor.
@@ -137,3 +221,4 @@ async function setTextSelection(text: string) {
     const selection = new vscode.Selection(0, 0, 0, 'selected text'.length);
     editor.selection = selection;
 }
+
