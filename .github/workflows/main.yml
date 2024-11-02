@@ -68,6 +68,5 @@ jobs:
         with:
           name: extension
           path: '*.vsix'
-            name: Release Extension
       
       
