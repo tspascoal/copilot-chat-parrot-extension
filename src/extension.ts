@@ -34,6 +34,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 	// This is not handled in the chat window, but in the command palette with the name `parrot`
 	const disposable = vscode.commands.registerCommand('tspascoal-copilot-chat-parrot.parrot', parrotCommandHandler);
 	extensionContext.subscriptions.push(disposable);
+	extensionContext.subscriptions.push(participant);
 }
 
 // This method is called when your extension is deactivated
