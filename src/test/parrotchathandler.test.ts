@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { addReferencesToResponse, getModelFamily, getUserPrompt } from '../parrotchathandler';
+import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getUserPrompt } from '../parrotchathandler';
 import * as parrotHandler from '../parrotchathandler';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
@@ -198,6 +198,22 @@ suite('addReferencesToResponse Test Suite', () => {
         }));
     });
 });
+suite('generateLikeSystemPrompt Test Suite', () => {
+    test('Returns yoda prompt when command contains yoda', () => {
+        const result = generateLikeSystemPrompt('likeyoda');
+        assert.equal(result.role, vscode.LanguageModelChatMessageRole.User);
+        //TODO: understand why content is not really a string like it should be
+        assert.equal((result as any).content[0].value, 'Repeat what I will say below, but make it sound like a coding yoda parrot. Return the text in plaintext');
+    });
+
+    test('Returns pirate prompt for when command contains pirate', () => {
+        const result = generateLikeSystemPrompt('likeapirate');
+        assert.equal(result.role, vscode.LanguageModelChatMessageRole.User);
+        //TODO: understand why content is not really a string like it should be
+        assert.equal((result as any).content[0].value, 'Repeat what I will say below, but make it sound like a coding pirate parrot. Return the text in plaintext');
+
+    });
+});
 
 
 /**
@@ -221,4 +237,5 @@ async function setTextSelection(text: string) {
     const selection = new vscode.Selection(0, 0, 0, 'selected text'.length);
     editor.selection = selection;
 }
+
 

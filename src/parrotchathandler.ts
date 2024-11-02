@@ -1,3 +1,4 @@
+import { hasUncaughtExceptionCaptureCallback } from 'process';
 import * as vscode from 'vscode';
 
 /**
@@ -76,10 +77,18 @@ async function getChatModelByName(family: string): Promise<vscode.LanguageModelC
  * Otherwise, it will default to a "coding pirate parrot".
  * 
  */
-function generateSystemPrompt(command: string | undefined): vscode.LanguageModelChatMessage {
+export function generateLikeSystemPrompt(command: string): vscode.LanguageModelChatMessage {
     // I think System would be better suited, but currently the model doesn't support that
     // https://code.visualstudio.com/api/extension-guides/language-model#build-the-language-model-prompt
     // https://github.com/microsoft/vscode/issues/206265#issuecomment-2118488846
+
+    if (command === '') {
+        throw new Error("Command cannot be empty");
+    }
+
+    if (!command.startsWith('like')) {
+        throw new Error("Command must start with 'like'");
+    }
 
     let soundLike = 'pirate';
     if (command?.search('yoda') !== -1) {
@@ -262,7 +271,7 @@ async function handleLikeCommands(command: string, userPrompt: string, request: 
 
     try {
         const modelName = getModelFamily(request);
-        const systemPrompt = generateSystemPrompt(command);
+        const systemPrompt = generateLikeSystemPrompt(command);
 
         console.log('will use model: ', modelName);
         console.log('parroting: ', userPrompt);
