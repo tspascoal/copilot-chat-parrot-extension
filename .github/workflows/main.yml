@@ -19,6 +19,8 @@ jobs:
       issues: read
       checks: write
       pull-requests: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
