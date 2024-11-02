@@ -41,15 +41,15 @@ suite('getModelFamily Test Suite', () => {
 });
 
 suite('getUserPrompt Test Suite', () => {
-    // test('Returns trimmed user prompt without references', () => {
-    //     const request: vscode.ChatRequest = {
-    //         prompt: '  Hello, world!  ',
-    //         references: []
-    //     } as any;
+    test('Returns trimmed user prompt without references', () => {
+        const request: vscode.ChatRequest = {
+            prompt: '  Hello, world!  ',
+            references: []
+        } as any;
 
-    //     const result = getUserPrompt(request);
-    //     assert.strictEqual(result, 'Hello, world!');
-    // });
+        const result = getUserPrompt(request);
+        assert.strictEqual(result, 'Hello, world!');
+    });
 
     test('Inlines copilot.selection reference into user prompt', async () => {
         const request: vscode.ChatRequest = {
