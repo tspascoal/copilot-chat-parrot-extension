@@ -36,6 +36,13 @@ jobs:
       - name: Run Linting
         run: npm run lint
 
+      - name: Upload eslint results code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.actor != 'dependabot[bot]'
+        with:
+          category: eslint
+          sarif_file: eslint.sarif
+
       - name: Run tests Linux
         run: xvfb-run -a npm test
         if: runner.os == 'Linux'
@@ -62,6 +69,5 @@ jobs:
         with:
           name: extension
           path: '*.vsix'
-            name: Release Extension
       
       
