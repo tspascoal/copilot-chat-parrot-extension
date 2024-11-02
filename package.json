@@ -53,7 +53,7 @@
       }
     ],
     "configuration": {
-      "title": "Parrot",      
+      "title": "Parrot",
       "properties": {
         "tspascoal.copilot.parrot.like.Enabled": {
           "type": "boolean",
@@ -86,6 +86,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.7",
     "@types/node": "20.x",
+    "@types/sinon": "^17.0.3",
     "@types/vscode": "^1.93.0",
     "@typescript-eslint/eslint-plugin": "^8.11.0",
     "@typescript-eslint/parser": "^8.11.0",
@@ -96,6 +97,7 @@
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
     "npm-run-all": "^4.1.5",
+    "sinon": "^19.0.2",
     "typescript": "^5.4.5"
   }
 }
