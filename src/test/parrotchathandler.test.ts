@@ -17,13 +17,13 @@ suite('getModelFamily Test Suite', () => {
     test('Returns default model family if user selected model is not present', () => {
         const request = {};
         const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o');
+        assert.strictEqual(result, 'gpt-4o-mini');
     });
 
     test('Returns default model family if user selected model is undefined', () => {
         const request = { userSelectedModel: undefined };
         const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o');
+        assert.strictEqual(result, 'gpt-4o-mini');
     });
 });
 
@@ -31,7 +31,7 @@ suite('getModelFamily Test Suite', () => {
     test('Returns default model family if userSelectedModel is null', () => {
         const request = { userSelectedModel: null };
         const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o');
+        assert.strictEqual(result, 'gpt-4o-mini');
     });
 
     test('Returns user selected model family if userSelectedModel.family is a non-empty string', () => {
