@@ -179,7 +179,7 @@ export function getModelFamily(request: any): string {
     if (request.userSelectedModel) {
         return request.userSelectedModel.family;
     } else {
-        return 'gpt-4o';
+        return 'gpt-4o-mini';
     }
 }
 
