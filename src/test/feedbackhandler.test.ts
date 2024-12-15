@@ -37,6 +37,28 @@ suite('Feedback Handler Test Suite', () => {
         vscode.window.showWarningMessage = originalShowWarningMessage;
     });
 
+
+    test('Handles unhelpful with undocumented unhelpfulReason feedback correctly', () => {
+        const feedback: vscode.ChatResultFeedback = { 
+            kind: vscode.ChatResultFeedbackKind.Unhelpful, 
+            result: {} as any,
+            unhelpfulReason: 'incompleteCode'
+        } as any;
+        let messageShown = '';
+
+        const originalShowWarningMessage = vscode.window.showWarningMessage;
+        vscode.window.showWarningMessage = (message: string) => {
+            messageShown = message;
+            return Promise.resolve();
+        };
+
+        handleFeedback(feedback);
+
+        assert.strictEqual(messageShown, '😢 Sorry that you didn\'t like our response. With Reason: incompleteCode');
+
+        vscode.window.showWarningMessage = originalShowWarningMessage;
+    });
+
     test('Handles unknown feedback correctly', () => {
         const feedback: vscode.ChatResultFeedback = { kind: 666 as vscode.ChatResultFeedbackKind, result: {} as any };
         let messageShown = '';
