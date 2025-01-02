@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      id: dev
-      dependency-type: development
-      patterns: '*'
-      
+      dev-dependencies:
+        dependency-type: development
+        patterns: 
+          - '*'
