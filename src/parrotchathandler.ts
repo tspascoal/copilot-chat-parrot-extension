@@ -173,12 +173,12 @@ export function getCurrentSelectionLocation(): vscode.Location | vscode.Uri | nu
  * @returns A tuple where the first element is the model name and the second element is the modified prompt.
  *
  */
-export function getModelFamily(request: any): string {
-    // Request should be vscode.ChatRequest but userSelectedModel is not in the type definition yet
-
-    if (request.userSelectedModel) {
-        return request.userSelectedModel.family;
+export function getModelFamily(request: vscode.ChatRequest): string {
+    if (request.model) {
+        return request.model.family;
     } else {
+        // This should only happen on old vscode versions that didn't 
+        // supported the picker yet
         return 'gpt-4o-mini';
     }
 }

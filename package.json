@@ -2,7 +2,7 @@
   "name": "tspascoal-copilot-chat-parrot",
   "displayName": "Parrot",
   "description": "Parrot is a chat participant that repeats things",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "repository": {
     "type": "git",
     "url": "https://github.com/tspascoal/copilot-chat-parrot-extension.git"
