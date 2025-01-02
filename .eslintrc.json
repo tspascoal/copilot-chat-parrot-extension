@@ -25,5 +25,11 @@
         "out",
         "dist",
         "**/*.d.ts"
+    ],
+    "overrides": [
+        {
+            "files": ["*.ts"],
+            "excludedFiles": ["*.test.ts"]
+        }
     ]
 }
