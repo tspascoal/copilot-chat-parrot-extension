@@ -3,41 +3,35 @@ import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getU
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
+function getMockedRequest (family: string, id: string) : vscode.ChatRequest  {
+    return {
+        model: {
+            family: family,
+            id: id,
+            name: family,
+            vendor: 'copilot',
+            version: '',
+            maxInputTokens: 0,
+            sendRequest: function (messages: vscode.LanguageModelChatMessage[], options?: vscode.LanguageModelChatRequestOptions, token?: vscode.CancellationToken): Thenable<vscode.LanguageModelChatResponse> {
+                throw new Error('Function not implemented.');
+            },
+            countTokens: function (text: string | vscode.LanguageModelChatMessage, token?: vscode.CancellationToken): Thenable<number> {
+                throw new Error('Function not implemented.');
+            }
+        },
+        prompt: '',
+        command: '',
+        references: [],
+        toolReferences: [],
+        toolInvocationToken: (undefined as never)
+    }
+}
+
 suite('getModelFamily Test Suite', () => {
     test('Returns user selected model family if present', () => {
-        const request = {
-            userSelectedModel: {
-                family: 'gpt-3'
-            }
-        };
+        const request = getMockedRequest('gpt-3', 'gpt-3') ;
         const result = getModelFamily(request);
         assert.strictEqual(result, 'gpt-3');
-    });
-
-    test('Returns default model family if user selected model is not present', () => {
-        const request = {};
-        const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o-mini');
-    });
-
-    test('Returns default model family if user selected model is undefined', () => {
-        const request = { userSelectedModel: undefined };
-        const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o-mini');
-    });
-});
-
-suite('getModelFamily Test Suite', () => {
-    test('Returns default model family if userSelectedModel is null', () => {
-        const request = { userSelectedModel: null };
-        const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-4o-mini');
-    });
-
-    test('Returns user selected model family if userSelectedModel.family is a non-empty string', () => {
-        const request = { userSelectedModel: { family: 'gpt-3.5' } };
-        const result = getModelFamily(request);
-        assert.strictEqual(result, 'gpt-3.5');
     });
 });
 
