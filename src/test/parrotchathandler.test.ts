@@ -2,8 +2,9 @@ import * as assert from 'assert';
 import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getUserPrompt } from '../parrotchathandler';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
+import path from 'path';
 
-function getMockedRequest (family: string, id: string) : vscode.ChatRequest  {
+function getMockedRequest(family: string, id: string): vscode.ChatRequest {
     return {
         model: {
             family: family,
@@ -27,9 +28,13 @@ function getMockedRequest (family: string, id: string) : vscode.ChatRequest  {
     }
 }
 
+function normalizeLineEndings(text: string): string {
+    return text.replace(/\r\n/g, '\n');
+}
+
 suite('getModelFamily Test Suite', () => {
     test('Returns user selected model family if present', () => {
-        const request = getMockedRequest('gpt-3', 'gpt-3') ;
+        const request = getMockedRequest('gpt-3', 'gpt-3');
         const result = getModelFamily(request);
         assert.strictEqual(result, 'gpt-3');
     });
@@ -107,7 +112,7 @@ suite('getUserPrompt Test Suite', () => {
             references: []
         } as any;
 
-        const { userPrompt , references} = await getUserPrompt(request);
+        const { userPrompt, references } = await getUserPrompt(request);
         assert.strictEqual(userPrompt, 'No references here');
         assert.strictEqual(references.length, 0);
     });
@@ -123,20 +128,50 @@ suite('getUserPrompt Test Suite', () => {
         assert.strictEqual(references.length, 0);
     });
 
-        test('returns prompt with file content when a file is referenced without a range', async () => {
-            const request: vscode.ChatRequest = {
-                prompt: '#file:path.txt',
-                references: [
-                    { id: 'vscode.file', name: 'file' }
-                ]
-            } as any;
-    
-            const { userPrompt , references} = await getUserPrompt(request);
-            assert.strictEqual(userPrompt, 'file content');
-            assert.strictEqual(references.length, 1);
-            //TODO: assert file reference metadata
-        });
-    
+    test('returns prompt with appended implicit selection content', async () => {
+        const request: vscode.ChatRequest = {
+            prompt: 'Check this out:',
+            references: [
+                { id: 'copilot.implicit.selection', name: 'selection' }
+            ]
+        } as any;
+
+        await setTextSelection('selected text');
+
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Check this out: selected text');
+        assert.strictEqual(references.length, 1);
+    });
+
+    test('returns prompt with file content when a file is referenced explicitely', async () => {
+
+        const testFileUri = vscode.Uri.file(path.join(__dirname, 'data', 'test.txt'));
+
+        const request: vscode.ChatRequest = {
+            prompt: '#file:test.txt',
+            references: [
+                { id: 'vscode.file', name: 'file:test.txt', value: testFileUri }
+            ]
+        } as any;
+
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'file content');
+        assert.strictEqual(references.length, 1);
+    });
+
+    test('returns prompt with multiline file explicitly referenced', async () => {
+        const testFileUri = vscode.Uri.file(path.join(__dirname, 'data', 'test_multiline.txt'));
+        const request: vscode.ChatRequest = {
+            prompt: '#file:test_multiline.txt',
+            references: [
+                { id: 'vscode.file', name: 'file:test_multiline.txt', value: testFileUri }
+            ]
+        } as any;
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(normalizeLineEndings(userPrompt), normalizeLineEndings('line 1\nline 2\nline 3'));
+        assert.strictEqual(references.length, 1);
+        
+    });    
 });
 
 suite('addReferencesToResponse Test Suite', () => {
@@ -167,7 +202,7 @@ suite('addReferencesToResponse Test Suite', () => {
 
     test('adds Yoda reference when using likeyoda command', () => {
         const request = { command: 'likeyoda' } as vscode.ChatRequest;
-        
+
         const references: (vscode.Uri | vscode.Location)[] = [];
         addReferencesToResponse(request, responseStream, references);
 
@@ -221,21 +256,27 @@ suite('generateLikeSystemPrompt Test Suite', () => {
  * Opens a new text document with the given content and displays it in the editor.
  *
  * @param content - The content to be displayed in the new text document.
- * @returns A promise that resolves when the document is opened and displayed.
  */
 async function openTextDocument(content: string) {
     // Open a new text document
-    const document = await vscode.workspace.openTextDocument({ content: 'selected text' });
+    const document = await vscode.workspace.openTextDocument({ content: content });
     await vscode.window.showTextDocument(document);
 }
 
+/**
+ * Creates a new text document with the specified content and sets the selection to the entire text
+ * 
+ * @param text - The text content to be inserted into the new document
+ * 
+ * @throws {Error} If the document cannot be opened or the selection cannot be set
+ */
 async function setTextSelection(text: string) {
     // Open a new text document
-    const document = await vscode.workspace.openTextDocument({ content: 'selected text' });
+    const document = await vscode.workspace.openTextDocument({ content: text });
     const editor = await vscode.window.showTextDocument(document);
 
     // Set the selection text
-    const selection = new vscode.Selection(0, 0, 0, 'selected text'.length);
+    const selection = new vscode.Selection(0, 0, 0, text.length);
     editor.selection = selection;
 }
 
