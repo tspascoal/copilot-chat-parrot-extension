@@ -19,16 +19,15 @@ export async function handleParrotChatHandler(request: vscode.ChatRequest, conte
     logContext(context);
     logRequest(request);
 
-
-    // Add references to the response based on the command. 
-    // This is a nonsensical example just for illustration purposes, (some of the) references are not really used for anything :)
-    addReferencesToResponse(request, response);
-
     if (command === 'listmodels') {
         return await listAvailableCopilotModels(response);
     }
 
-    const userPrompt = getUserPrompt(request);
+    const { userPrompt, references } = await getUserPrompt(request);
+
+    // Add references to the response based on the command. 
+    // This is a nonsensical example just for illustration purposes, (some of the) references are not really used for anything :)
+    addReferencesToResponse(request, response, references);
 
     if (userPrompt === '') {
         response.markdown('Polly wants a cracker, you need to tell me something to repeat');
@@ -104,16 +103,23 @@ export function generateLikeSystemPrompt(command: string): vscode.LanguageModelC
  * in the request. If a reference has an ID of 'copilot.selection', it replaces occurrences of 
  * `#reference.name` in the prompt with the current selection text. Other types of references are ignored.
  * 
+ * Note: copilot.selection is no longer used in newer versions of copilot, but is kept here for compatibility.  
+ * Newer versions automatically transform `#selection` to a `#file:FILENANE:23-45` format (file with a range).
+ * 
  * @param request - The chat request containing the prompt and references.
  * @returns The processed user prompt string.
  */
-export function getUserPrompt(request: vscode.ChatRequest): string {
+export async function getUserPrompt(request: vscode.ChatRequest): Promise<{ userPrompt: string; references: (vscode.Location | vscode.Uri)[]; }> {
 
     let userPrompt = request.prompt.trim();
+    let references: (vscode.Location | vscode.Uri)[] = [];
 
     // iterate on all references and inline the ones we support directly into the user prompt
     for (const ref of request.references) {
         const reference = ref as any; // Cast to any to access the name property
+
+        // In newer versions of copilot this is no longer returned. now '#selection' is automatically transformed
+        // to a #file:FILENANE:23-45 (23-45 means a range). Keeping so it works on older versions
         if (reference.id === 'copilot.selection') {
             console.log(`processing ${reference.id} with name: ${reference.name}`);
 
@@ -122,11 +128,16 @@ export function getUserPrompt(request: vscode.ChatRequest): string {
             if (currentSelection) {
                 userPrompt = userPrompt.replaceAll(`#${reference.name}`, currentSelection);
             }
+            const location = getCurrentSelectionLocation();
+            if (location) {
+                references.push(location);
+            }
         } else {
             console.log(`will ignore reference of type: ${reference.id}`);
         }
     }
-    return userPrompt;
+
+    return { userPrompt, references };
 }
 
 /**
@@ -188,6 +199,7 @@ export function getModelFamily(request: vscode.ChatRequest): string {
  *
  * @param request - The chat request containing the command.
  * @param response - The chat response stream to which references will be added.
+ * @param references - An array of references to be added to the response.
  *
  * @remarks
  * This function adds a reference to a demo URL for all requests. Additionally, it adds specific references
@@ -195,7 +207,7 @@ export function getModelFamily(request: vscode.ChatRequest): string {
  * - If the command is 'likeyoda', it adds a reference to Yoda's Wikipedia page.
  * - If the command is 'likeapirate', it adds a reference to the International Talk Like a Pirate Day Wikipedia page.
  */
-export function addReferencesToResponse(request: vscode.ChatRequest, response: vscode.ChatResponseStream) {
+export function addReferencesToResponse(request: vscode.ChatRequest, response: vscode.ChatResponseStream, references: (vscode.Location | vscode.Uri)[]) {
     const command = request.command;
 
     // Nonsense reference just for demo purposes. It's not really a reference to the user's input
@@ -210,18 +222,8 @@ export function addReferencesToResponse(request: vscode.ChatRequest, response: v
         response.reference(vscode.Uri.parse('https://en.wikipedia.org/wiki/International_Talk_Like_a_Pirate_Day'));
     }
 
-    if (request.references) {
-        // Add to the references the ones we use in the prompt.
-        for (const ref of request.references) {
-            const reference: any = ref; // Cast to any, to get the name property, it's not in the type
-            if (reference.id === 'copilot.selection') {
-
-                const location = getCurrentSelectionLocation();
-                if (location) {
-                    response.reference(location);
-                }
-            }
-        }
+    for (const reference of references) {
+        response.reference(reference);
     }
 }
 
@@ -309,4 +311,5 @@ function handleError(error: any, stream: vscode.ChatResponseStream): void {
         throw error;
     }
 }
+
 

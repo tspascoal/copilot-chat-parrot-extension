@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getUserPrompt } from '../parrotchathandler';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
+import { getCurrentSelectionLocation } from '../bak/parrotchathandler';
 
 function getMockedRequest (family: string, id: string) : vscode.ChatRequest  {
     return {
@@ -36,14 +37,14 @@ suite('getModelFamily Test Suite', () => {
 });
 
 suite('getUserPrompt Test Suite', () => {
-    test('Returns trimmed user prompt without references', () => {
+    test('Returns trimmed user prompt without references', async () => {
         const request: vscode.ChatRequest = {
             prompt: '  Hello, world!  ',
             references: []
         } as any;
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'Hello, world!');
+        const { userPrompt } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Hello, world!');
     });
 
     test('Inlines copilot.selection reference into user prompt', async () => {
@@ -56,8 +57,9 @@ suite('getUserPrompt Test Suite', () => {
 
         await setTextSelection('selected text');
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'Check this out: selected text');
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Check this out: selected text');
+        assert.strictEqual(references.length, 1);
     });
 
     test('No inline copilot.selection reference because there is no selected test', async () => {
@@ -70,11 +72,11 @@ suite('getUserPrompt Test Suite', () => {
 
         await openTextDocument('dummy text');
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'Check this out: #selection');
+        const { userPrompt } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Check this out: #selection');
     });
 
-    test('Ignores unsupported references in user prompt', () => {
+    test('Ignores unsupported references in user prompt', async () => {
         const request: vscode.ChatRequest = {
             prompt: 'Check this out: #selection',
             references: [
@@ -82,8 +84,8 @@ suite('getUserPrompt Test Suite', () => {
             ]
         } as any;
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'Check this out: #selection');
+        const { userPrompt } = await await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Check this out: #selection');
     });
 
     test('Handles multiple copilot.selection references in user prompt', async () => {
@@ -96,18 +98,31 @@ suite('getUserPrompt Test Suite', () => {
 
         await setTextSelection('selected text');
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'First: selected text, Second: selected text');
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'First: selected text, Second: selected text');
+        assert.strictEqual(references.length, 1); // the reference is only added once. Even if duplicated in the prompt
     });
 
-    test('Returns prompt unchanged if no copilot.selection references are present', () => {
+    test('Returns prompt unchanged if no copilot.selection references are present', async () => {
         const request: vscode.ChatRequest = {
             prompt: 'No references here',
             references: []
         } as any;
 
-        const result = getUserPrompt(request);
-        assert.strictEqual(result, 'No references here');
+        const { userPrompt , references} = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'No references here');
+        assert.strictEqual(references.length, 0);
+    });
+
+    test('Returns prompt unchanged if no references are present', async () => {
+        const request: vscode.ChatRequest = {
+            prompt: 'No references here',
+            references: []
+        } as any;
+
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'No references here');
+        assert.strictEqual(references.length, 0);
     });
 });
 
@@ -131,15 +146,17 @@ suite('addReferencesToResponse Test Suite', () => {
     test('adds default reference', () => {
         const request = { command: 'normal' } as vscode.ChatRequest;
 
-        addReferencesToResponse(request, responseStream);
+        const references: (vscode.Uri | vscode.Location)[] = [];
+        addReferencesToResponse(request, responseStream, references);
 
         sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
     });
 
     test('adds Yoda reference when using likeyoda command', () => {
         const request = { command: 'likeyoda' } as vscode.ChatRequest;
-
-        addReferencesToResponse(request, responseStream);
+        
+        const references: (vscode.Uri | vscode.Location)[] = [];
+        addReferencesToResponse(request, responseStream, references);
 
         sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
         sinon.assert.calledWith(responseStream.reference,
@@ -149,46 +166,24 @@ suite('addReferencesToResponse Test Suite', () => {
     test('adds pirate reference when using likeapirate command', () => {
         const request = { command: 'likeapirate' } as vscode.ChatRequest;
 
-        addReferencesToResponse(request, responseStream);
+        const references: (vscode.Uri | vscode.Location)[] = [];
+        addReferencesToResponse(request, responseStream, references);
 
         sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
         sinon.assert.calledWith(responseStream.reference,
             vscode.Uri.parse('https://en.wikipedia.org/wiki/International_Talk_Like_a_Pirate_Day'));
     });
 
-    test('adds selection reference when copilot.selection is present', async () => {
-        const request = {
-            command: 'normal',
-            prompt: '',
-            references: [{ id: 'copilot.selection', name: 'selection' }]
-        } as unknown as vscode.ChatRequest;
+    test('adds passed reference', () => {
+        const request = { command: 'normal' } as vscode.ChatRequest;
 
-        await setTextSelection('text selection');
+        const references: (vscode.Uri | vscode.Location)[] = [
+            vscode.Uri.parse('https://example.com')
+        ];
+        addReferencesToResponse(request, responseStream, references);
 
-        addReferencesToResponse(request, responseStream);
-
-        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));        
-        sinon.assert.calledWith(responseStream.reference, sinon.match({
-            uri: sinon.match({ scheme: 'untitled' }),
-            range: sinon.match({
-                start: sinon.match({
-                    line: 0,
-                    character: 0
-                }),
-                end: sinon.match({
-                    line: 0,
-                    character: 13
-                }),
-                active: sinon.match({
-                    line: 0,
-                    character: sinon.match.number
-                }),
-                anchor: sinon.match({
-                    line: 0,
-                    character: 0
-                })
-            })
-        }));
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse(blogUrlReference));
+        sinon.assert.calledWith(responseStream.reference, vscode.Uri.parse('https://example.com'));
     });
 });
 suite('generateLikeSystemPrompt Test Suite', () => {
