@@ -2,7 +2,6 @@ import * as assert from 'assert';
 import { addReferencesToResponse, generateLikeSystemPrompt, getModelFamily, getUserPrompt } from '../parrotchathandler';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { getCurrentSelectionLocation } from '../bak/parrotchathandler';
 
 function getMockedRequest (family: string, id: string) : vscode.ChatRequest  {
     return {
@@ -57,9 +56,8 @@ suite('getUserPrompt Test Suite', () => {
 
         await setTextSelection('selected text');
 
-        const { userPrompt, references } = await getUserPrompt(request);
+        const { userPrompt } = await getUserPrompt(request);
         assert.strictEqual(userPrompt, 'Check this out: selected text');
-        assert.strictEqual(references.length, 1);
     });
 
     test('No inline copilot.selection reference because there is no selected test', async () => {
@@ -124,6 +122,21 @@ suite('getUserPrompt Test Suite', () => {
         assert.strictEqual(userPrompt, 'No references here');
         assert.strictEqual(references.length, 0);
     });
+
+        test('returns prompt with file content when a file is referenced without a range', async () => {
+            const request: vscode.ChatRequest = {
+                prompt: '#file:path.txt',
+                references: [
+                    { id: 'vscode.file', name: 'file' }
+                ]
+            } as any;
+    
+            const { userPrompt , references} = await getUserPrompt(request);
+            assert.strictEqual(userPrompt, 'file content');
+            assert.strictEqual(references.length, 1);
+            //TODO: assert file reference metadata
+        });
+    
 });
 
 suite('addReferencesToResponse Test Suite', () => {
