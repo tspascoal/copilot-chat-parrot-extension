@@ -79,6 +79,21 @@ suite('getUserPrompt Test Suite', () => {
         assert.strictEqual(userPrompt, 'Check this out: #selection');
     });
 
+    test('Inlines vscode.selection reference into user prompt', async () => {
+        const request: vscode.ChatRequest = {
+            prompt: 'Check this out: #file:Untitled-1:1-1',
+            references: [
+                { id: 'vscode.selection', name: 'file:Untitled-1:1-1' }
+            ]
+        } as any;
+
+        await setTextSelection('selected text');
+
+        const { userPrompt } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, 'Check this out: selected text');
+    });
+
+
     test('Ignores unsupported references in user prompt', async () => {
         const request: vscode.ChatRequest = {
             prompt: 'Check this out: #selection',

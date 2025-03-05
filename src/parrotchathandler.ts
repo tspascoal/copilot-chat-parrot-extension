@@ -103,13 +103,14 @@ export function generateLikeSystemPrompt(command: string): vscode.LanguageModelC
  * in the request. Given a reference id
  * 
  * - 'copilot.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text. 
+ * - 'vscode.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text. 
  * - 'copilot.implicit.selection', it appends the current selection text to the prompt.
  * - 'vscode.file', it replaces occurrences of `#reference.name` in the prompt with the content of the specified file. (range is not supported)
  * 
  * Other types of references are ignored.
  * 
  * Note: copilot.selection is no longer used in newer versions of copilot, but is kept here for compatibility.  
- * Newer versions automatically transform `#selection` to a `#file:FILENANE:23-45` format (file with a range).
+ * Newer versions automatically transform `#selection` to a `#file:FILENANE:23-45` format (file with a range) and send an id of vscode.selection
  * 
  * @param request - The chat request containing the prompt and references.
  * @returns The processed user prompt string.
@@ -127,13 +128,13 @@ export async function getUserPrompt(request: vscode.ChatRequest): Promise<{ user
         // to a #file:FILENANE:23-45 (23-45 means a range) but they are NOT included in the references list, and we
         // do NOT parse the prompt to see if a user has referenced them.
         // Keeping so it works on older versions
-        if (reference.id === 'copilot.selection' || reference.id === 'copilot.implicit.selection') {
+        if (reference.id === 'copilot.selection' || reference.id === 'vscode.selection' || reference.id === 'copilot.implicit.selection') {
             console.log(`processing ${reference.id} with name: ${reference.name}`);
 
             const currentSelection = getCurrentSelectionText();
             console.log(`current selection: ${currentSelection}`);
             if (currentSelection) {
-                if (reference.id === 'copilot.selection') {
+                if (reference.id === 'copilot.selection' || reference.id === 'vscode.selection') {
                     userPrompt = userPrompt.replaceAll(`#${reference.name}`, currentSelection);
                 } else if (reference.id === 'copilot.implicit.selection') {
                     userPrompt = userPrompt += " " + currentSelection;
