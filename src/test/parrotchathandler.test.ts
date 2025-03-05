@@ -80,19 +80,61 @@ suite('getUserPrompt Test Suite', () => {
     });
 
     test('Inlines vscode.selection reference into user prompt', async () => {
+
+        const { document, editor } = await setTextSelection('selected text');
+
+        const fileName = document.fileName;
+        const textualRange = `${editor.selection.start.line + 1}-${editor.selection.end.line + 1}`;
+
         const request: vscode.ChatRequest = {
-            prompt: 'Check this out: #file:Untitled-1:1-1',
+            prompt: `Check this out: #file:${fileName}:${textualRange}`,
             references: [
-                { id: 'vscode.selection', name: 'file:Untitled-1:1-1' }
+                {
+                    id: 'vscode.selection',
+                    name: `file:${fileName}:${textualRange}`,
+                    value: {
+                        uri: document.uri,
+                        range: editor.selection
+                    }
+                }
             ]
         } as any;
-
-        await setTextSelection('selected text');
 
         const { userPrompt } = await getUserPrompt(request);
         assert.strictEqual(userPrompt, 'Check this out: selected text');
     });
 
+    test('Does not inline vscode.selection with closed editor (of unsaved file)', async () => {
+
+        const { document, editor } = await setTextSelection('selected text');
+
+        const fileName = document.fileName;
+        const textualRange = `${editor.selection.start.line + 1}-${editor.selection.end.line + 1}`;
+
+        const prompt = `Check this out: #file:${fileName}:${textualRange}`;
+
+        const request: vscode.ChatRequest = {
+            prompt: prompt,
+            references: [
+                {
+                    id: 'vscode.selection',
+                    name: `file:${fileName}:${textualRange}`,
+                    value: {
+                        uri: document.uri,
+                        range: editor.selection
+                    }
+                }
+            ]
+        } as any;
+
+        // close editor
+        await vscode.window.showTextDocument(document);
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+
+        const { userPrompt, references } = await getUserPrompt(request);
+        assert.strictEqual(userPrompt, prompt); // unchanged prompt
+        assert.strictEqual(references.length, 0); // no references
+    });
 
     test('Ignores unsupported references in user prompt', async () => {
         const request: vscode.ChatRequest = {
@@ -144,14 +186,22 @@ suite('getUserPrompt Test Suite', () => {
     });
 
     test('returns prompt with appended implicit selection content', async () => {
+
+        const { document, editor } = await setTextSelection('selected text');
+
         const request: vscode.ChatRequest = {
             prompt: 'Check this out:',
             references: [
-                { id: 'copilot.implicit.selection', name: 'selection' }
+                { 
+                    id: 'copilot.implicit.selection', 
+                    name: 'selection',
+                    value: {
+                        uri: document.uri,
+                        range: editor.selection
+                    }
+                }                    
             ]
         } as any;
-
-        await setTextSelection('selected text');
 
         const { userPrompt, references } = await getUserPrompt(request);
         assert.strictEqual(userPrompt, 'Check this out: selected text');
@@ -174,6 +224,21 @@ suite('getUserPrompt Test Suite', () => {
         assert.strictEqual(references.length, 1);
     });
 
+    test('Handles file references that do not exist', async () => {
+        const nonExistentUri = vscode.Uri.file(path.join(__dirname, 'data', 'non_existent.txt'));
+        const request: vscode.ChatRequest = {
+            prompt: '#file:non_existent.txt',
+            references: [
+                { id: 'vscode.file', name: 'file:non_existent.txt', value: nonExistentUri }
+            ]
+        } as any;
+    
+        await assert.rejects(async () => {
+            await getUserPrompt(request);
+        });        
+        
+    });    
+
     test('returns prompt with multiline file explicitly referenced', async () => {
         const testFileUri = vscode.Uri.file(path.join(__dirname, 'data', 'test_multiline.txt'));
         const request: vscode.ChatRequest = {
@@ -185,8 +250,8 @@ suite('getUserPrompt Test Suite', () => {
         const { userPrompt, references } = await getUserPrompt(request);
         assert.strictEqual(normalizeLineEndings(userPrompt), normalizeLineEndings('line 1\nline 2\nline 3'));
         assert.strictEqual(references.length, 1);
-        
-    });    
+
+    });
 });
 
 suite('addReferencesToResponse Test Suite', () => {
@@ -196,6 +261,8 @@ suite('addReferencesToResponse Test Suite', () => {
     const blogUrlReference = 'https://pascoal.net/2024/10/22/gh-copilot-extensions';
 
     setup(() => {
+        // close all windows
+        vscode.commands.executeCommand('workbench.action.closeAllEditors');
         sandbox = sinon.createSandbox();
         responseStream = {
             reference: sandbox.stub()
@@ -285,7 +352,7 @@ async function openTextDocument(content: string) {
  * 
  * @throws {Error} If the document cannot be opened or the selection cannot be set
  */
-async function setTextSelection(text: string) {
+async function setTextSelection(text: string): Promise<{ document: vscode.TextDocument; editor: vscode.TextEditor }> {
     // Open a new text document
     const document = await vscode.workspace.openTextDocument({ content: text });
     const editor = await vscode.window.showTextDocument(document);
@@ -293,6 +360,8 @@ async function setTextSelection(text: string) {
     // Set the selection text
     const selection = new vscode.Selection(0, 0, 0, text.length);
     editor.selection = selection;
+
+    return { document, editor };
 }
 
 

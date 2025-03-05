@@ -102,57 +102,70 @@ export function generateLikeSystemPrompt(command: string): vscode.LanguageModelC
  * This function trims the initial prompt from the request and then iterates over all references
  * in the request. Given a reference id
  * 
- * - 'copilot.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text. 
- * - 'vscode.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text. 
+ * - 'copilot.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text (fetches the current selection from the active editor).
+ * - 'vscode.selection', it replaces occurrences of  `#file:NAME:RANGE` in the prompt with the current selection text (at time of selection expansion). 
  * - 'copilot.implicit.selection', it appends the current selection text to the prompt.
  * - 'vscode.file', it replaces occurrences of `#reference.name` in the prompt with the content of the specified file. (range is not supported)
  * 
  * Other types of references are ignored.
  * 
- * Note: copilot.selection is no longer used in newer versions of copilot, but is kept here for compatibility.  
- * Newer versions automatically transform `#selection` to a `#file:FILENANE:23-45` format (file with a range) and send an id of vscode.selection
+ * Note there are references (eg: #terminalSelection or #changes) not in request.references but in request.toolReferences that are not processed.
+ * 
+ * Note: copilot.selection is no longer used in newer versions of copilot, but is kept here for compatibility with older versions.
+ * Newer versions automatically transform `#selection` to a `#file:FILENAME:23-45` format (file with a range) and send an id of vscode.selection
  * 
  * @param request - The chat request containing the prompt and references.
  * @returns The processed user prompt string.
  */
 export async function getUserPrompt(request: vscode.ChatRequest): Promise<{ userPrompt: string; references: (vscode.Location | vscode.Uri)[]; }> {
-
     let userPrompt = request.prompt.trim();
     let references: (vscode.Location | vscode.Uri)[] = [];
+
+        async function processDocumentReference(location: vscode.Location, refName: string, append = false): Promise<string> {
+        let document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === location.uri.toString());
+
+        // If document is no longer open, then ignore it.
+        if (!document) {
+            return userPrompt;
+        }
+        const text = document.getText(location.range);
+        
+        references.push(location);
+        
+        if (append) {
+            return userPrompt + " " + text;
+        } else {
+            return userPrompt.replaceAll(`#${refName}`, text);
+        }
+    }
 
     // iterate on all references and inline the ones we support directly into the user prompt
     for (const ref of request.references) {
         const reference = ref as any; // Cast to any to access the name property
+        console.log(`processing ${reference.id} with name: ${reference.name}`);
 
-        // In newer versions of copilot this is no longer returned. now '#selection' is automatically transformed
-        // to a #file:FILENANE:23-45 (23-45 means a range) but they are NOT included in the references list, and we
-        // do NOT parse the prompt to see if a user has referenced them.
-        // Keeping so it works on older versions
-        if (reference.id === 'copilot.selection' || reference.id === 'vscode.selection' || reference.id === 'copilot.implicit.selection') {
-            console.log(`processing ${reference.id} with name: ${reference.name}`);
-
+        if (reference.id === 'copilot.selection') {
             const currentSelection = getCurrentSelectionText();
             console.log(`current selection: ${currentSelection}`);
+
             if (currentSelection) {
-                if (reference.id === 'copilot.selection' || reference.id === 'vscode.selection') {
-                    userPrompt = userPrompt.replaceAll(`#${reference.name}`, currentSelection);
-                } else if (reference.id === 'copilot.implicit.selection') {
-                    userPrompt = userPrompt += " " + currentSelection;
-                } else {
-                    throw new Error(`Unknown reference id: ${reference.id}`);
-                }
+                userPrompt = userPrompt.replaceAll(`#${reference.name}`, currentSelection);
             }
+
             const location = getCurrentSelectionLocation();
             if (location) {
                 references.push(location);
             }
+        } else if (reference.id === 'vscode.selection') {
+            userPrompt = await processDocumentReference(reference.value, reference.name);
+        } else if (reference.id === 'copilot.implicit.selection') {
+            userPrompt = await processDocumentReference(reference.value, reference.name, true);
         } else if (reference.id === 'vscode.file') {
             console.log(`processing ${reference.id} with name: ${reference.name}`);
-
             const fileUri = reference.value;
             const fileContent = await vscode.workspace.fs.readFile(fileUri);
+            
             userPrompt = userPrompt.replaceAll(`#${reference.name}`, fileContent.toString());
-
             references.push(fileUri);
         } else {
             console.log(`will ignore reference of type: ${reference.id}`);
