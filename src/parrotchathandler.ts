@@ -104,7 +104,8 @@ export function generateLikeSystemPrompt(command: string): vscode.LanguageModelC
  * 
  * - 'copilot.selection', it replaces occurrences of  `#reference.name` in the prompt with the current selection text (fetches the current selection from the active editor).
  * - 'vscode.selection', it replaces occurrences of  `#file:NAME:RANGE` in the prompt with the current selection text (at time of selection expansion). 
- * - 'copilot.implicit.selection', it appends the current selection text to the prompt.
+ * - 'copilot.implicit.selection', it appends the current selection text to the prompt 
+ *   - copilot automatically adds the current selection to the prompt if setting `chat.implicitContext.enabled` is true.
  * - 'vscode.file', it replaces occurrences of `#reference.name` in the prompt with the content of the specified file. (range is not supported)
  * 
  * Other types of references are ignored.
