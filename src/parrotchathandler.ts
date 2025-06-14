@@ -23,6 +23,8 @@ export async function handleParrotChatHandler(request: vscode.ChatRequest, conte
         return await listAvailableCopilotModels(response);
     }
 
+    // TODO: call tools if needed?
+
     const { userPrompt, references } = await getUserPrompt(request);
 
     // Add references to the response based on the command. 
