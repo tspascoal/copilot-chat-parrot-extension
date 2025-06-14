@@ -4,6 +4,7 @@ import { generateFollowups } from './followup';
 import { handleParrotChatHandler } from './parrotchathandler';
 import { parrotCommandHandler } from './commandhandler';
 import { parrotSayNameTool } from './saynametool';
+import { parrotRepeatLikeTool } from './repeatliketool';
 
 // The code was initially generated with https://www.npmjs.com/package/generator-code
 // More information at https://code.visualstudio.com/api/get-started/your-first-extension and https://code.visualstudio.com/api/extension-guides/chat-tutorial
@@ -33,6 +34,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 
 	// Register the language model tools
 	const sayNameTool = vscode.lm.registerTool('tspascoal-copilot-chat-parrot-say_name', new parrotSayNameTool());
+	const repeatLikeTool = vscode.lm.registerTool('tspascoal-copilot-chat-parrot-repeat_like', new parrotRepeatLikeTool());
 	
 	// The command has been defined in the package.json file
 	// The commandId parameter must match the command field in package.json
@@ -41,6 +43,7 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 	extensionContext.subscriptions.push(disposable);
 	extensionContext.subscriptions.push(participant);
 	extensionContext.subscriptions.push(sayNameTool);
+	extensionContext.subscriptions.push(repeatLikeTool);
 }
 
 // This method is called when your extension is deactivated
