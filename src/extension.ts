@@ -3,6 +3,7 @@ import { handleFeedback } from './feedbackhandler';
 import { generateFollowups } from './followup';
 import { handleParrotChatHandler } from './parrotchathandler';
 import { parrotCommandHandler } from './commandhandler';
+import { parrotSayNameTool } from './saynametool';
 
 // The code was initially generated with https://www.npmjs.com/package/generator-code
 // More information at https://code.visualstudio.com/api/get-started/your-first-extension and https://code.visualstudio.com/api/extension-guides/chat-tutorial
@@ -29,12 +30,17 @@ export function activate(extensionContext: vscode.ExtensionContext) {
 	// set the icon for the chat participant
 	participant.iconPath = vscode.Uri.joinPath(extensionContext.extensionUri, 'images', 'parrot_1747903.png');
 
+
+	// Register the language model tools
+	const sayNameTool = vscode.lm.registerTool('tspascoal-copilot-chat-parrot-say_name', new parrotSayNameTool());
+	
 	// The command has been defined in the package.json file
 	// The commandId parameter must match the command field in package.json
 	// This is not handled in the chat window, but in the command palette with the name `parrot`
 	const disposable = vscode.commands.registerCommand('tspascoal-copilot-chat-parrot.parrot', parrotCommandHandler);
 	extensionContext.subscriptions.push(disposable);
 	extensionContext.subscriptions.push(participant);
+	extensionContext.subscriptions.push(sayNameTool);
 }
 
 // This method is called when your extension is deactivated

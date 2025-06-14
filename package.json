@@ -24,7 +24,16 @@
     "commands": [
       {
         "command": "tspascoal-copilot-chat-parrot.parrot",
-        "title": "The Parrot repeats things"
+        "title": "The Parrot repeats things"        
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "tspascoal-copilot-chat-parrot-say_name",
+        "displayName": "Say the name of the parrot",
+        "toolReferenceName": "sayParrotName",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "When asked say the parrot name"
       }
     ],
     "chatParticipants": [
