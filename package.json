@@ -33,7 +33,27 @@
         "displayName": "Say the name of the parrot",
         "toolReferenceName": "sayParrotName",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "When asked say the parrot name"
+        "modelDescription": "When asked to say the parrot name or asked what is the parrot name"
+      },
+      {
+        "name": "tspascoal-copilot-chat-parrot-repeat_like",
+        "displayName": "Repeat text in different styles",
+        "toolReferenceName": "repeatLike",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Parrot or repeat text in the style of different characters like Yoda, parrot, pirate, or other styles. Takes parameters: text (string) and like (string)",
+        "inputSchema": {
+          "type": "string",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "The text to be repeated"
+            },
+            "like": {
+              "type": "string",
+              "description": "The style we are going talk like"
+            }
+          }
+        }
       }
     ],
     "chatParticipants": [
